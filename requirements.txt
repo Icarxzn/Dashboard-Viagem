@@ -1,0 +1,11 @@
+pandas
+gspread
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+flask
+flask-cors
+dash
+plotly
+requests
+python-dotenv
