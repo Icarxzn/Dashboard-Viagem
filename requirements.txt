@@ -9,3 +9,4 @@ dash
 plotly
 requests
 python-dotenv
+gunicorn
