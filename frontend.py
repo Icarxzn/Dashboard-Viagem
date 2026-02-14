@@ -84,14 +84,16 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 
 .title-container{
     background:linear-gradient(135deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%);
     padding:25px 30px;
-    border-radius:16px;
-    margin-bottom:20px;
-    box-shadow:0 8px 24px rgba(255,107,53,.25);
+    border-radius:0;
+    margin-bottom:0;
+    box-shadow:0 2px 10px rgba(255,107,53,.15);
     display:flex;
     justify-content:space-between;
     align-items:center;
     flex-wrap:wrap;
     gap:15px;
+    width:100%;
+    box-sizing:border-box;
 }
 .title-left{flex:1;}
 .title-gradient{
@@ -128,12 +130,14 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 
     display:grid;
     grid-template-columns:repeat(4, 1fr);
     gap:15px;
-    margin-bottom:20px;
+    margin:20px;
     padding:20px;
     background:white;
-    border-radius:16px;
-    box-shadow:0 4px 16px rgba(255,107,53,.1);
-    border:2px solid #ffe8dd;
+    border-radius:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+    border:1px solid #ffe8dd;
+    width:calc(100% - 40px);
+    box-sizing:border-box;
 }
 .filter-item{display:flex;flex-direction:column}
 .filter-item label{
@@ -157,7 +161,9 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 
     display:grid;
     grid-template-columns:2fr 1fr;
     gap:20px;
-    margin-bottom:20px;
+    margin:0 20px 20px 20px;
+    width:calc(100% - 40px);
+    box-sizing:border-box;
 }
 .graph-card{
     background:white;
@@ -235,10 +241,13 @@ h3::after{
 }
 .table-container{
     background:white;
-    border-radius:16px;
+    border-radius:12px;
     padding:20px;
-    box-shadow:0 4px 16px rgba(255,107,53,.1);
-    border:2px solid #ffe8dd;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+    border:1px solid #ffe8dd;
+    margin:0 20px 20px 20px;
+    width:calc(100% - 40px);
+    box-sizing:border-box;
 }
 .dash-table-container{
     border-radius:12px;
@@ -313,7 +322,10 @@ h3::after{
 .sidebar-item{padding:15px 20px;color:rgba(255,255,255,0.9);font-weight:500;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
 .sidebar-item:hover{background:rgba(255,255,255,0.12);color:white;border-left-color:white;padding-left:25px}
 .sidebar-item.active{background:rgba(255,255,255,0.2);color:white;border-left-color:white;font-weight:600}
-.main-with-sidebar{margin-left:250px;width:calc(100% - 250px)}
+.main-with-sidebar{margin-left:250px;width:calc(100% - 250px);padding:0;box-sizing:border-box}
+
+body{margin:0;padding:0;overflow-x:hidden}
+#react-entry-point{width:100%;max-width:100vw;overflow-x:hidden}
 
 @media(max-width:768px){
 .sidebar{width:70px}
