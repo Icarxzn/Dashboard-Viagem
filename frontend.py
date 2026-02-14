@@ -1,4 +1,5 @@
 # frontend.py
+import os
 import dash
 from dash import dcc, html, Input, Output, State, dash_table
 import plotly.express as px
@@ -13,7 +14,7 @@ print("INICIANDO FRONTEND DO DASHBOARD")
 print("="*70)
 
 # URL da API backend
-API_URL = "http://localhost:8050"
+API_URL = os.getenv("API_URL", "http://localhost:8050")
 
 # Configurações
 CORES_STATUS = {
@@ -1269,4 +1270,5 @@ if __name__ == "__main__":
     print("\n⚙️  API backend rodando em: http://localhost:8050")
     print("\n💡 Pressione CTRL+C para parar o servidor")
     print("="*70 + "\n")
-    app.run(debug=False, port=8051, host='127.0.0.1', use_reloader=False)
+    port = int(os.getenv("PORT", 8051))
+    app.run(debug=False, port=port, host='0.0.0.0', use_reloader=False)

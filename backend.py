@@ -673,7 +673,8 @@ if __name__ == '__main__':
         print("="*70 + "\n")
         
         # Iniciar servidor
-        app.run(debug=False, port=8050, host='127.0.0.1', use_reloader=False)
+        port = int(os.getenv("PORT", 8050))
+        app.run(debug=False, port=port, host='0.0.0.0', use_reloader=False)
         
     except KeyboardInterrupt:
         logger.info("\n🛑 Servidor interrompido pelo usuário")
