@@ -1,5 +1,4 @@
 # frontend.py
-import os
 import dash
 from dash import dcc, html, Input, Output, State, dash_table
 import plotly.express as px
@@ -14,7 +13,7 @@ print("INICIANDO FRONTEND DO DASHBOARD")
 print("="*70)
 
 # URL da API backend
-API_URL = os.getenv("API_URL", "http://localhost:8050")
+API_URL = "http://localhost:8050"
 
 # Configurações
 CORES_STATUS = {
@@ -73,793 +72,347 @@ def buscar_filtros():
 app = dash.Dash(__name__)
 app.title = "Dashboard de Monitoramento de Viagens"
 
-# CSS MELHORADO E TOTALMENTE RESPONSIVO
-app.index_string = '''<!DOCTYPE html>
-<html>
-<head>
-{%metas%}
-<title>{%title%}</title>
-{%favicon%}
-{%css%}
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+# CSS melhorado (mesmo do código original)
+app.index_string = '''<!DOCTYPE html><html><head>{%metas%}<title>{%title%}</title>{%favicon%}{%css%}<style>
+/* CSS mantido do original */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 0%,#ffe8dd 50%,#ffd4c4 100%);min-height:100vh;padding:20px}
+#react-entry-point{max-width:1600px;margin:0 auto}
 
-/* ============================================ */
-/* RESET E CONFIGURAÇÕES GLOBAIS */
-/* ============================================ */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* Header com gradiente laranja */
+.title-container{
+    background:linear-gradient(135deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%);
+    padding:25px 30px;
+    border-radius:16px;
+    margin-bottom:20px;
+    box-shadow:0 8px 24px rgba(255,107,53,.25);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:15px;
+}
+.title-left{flex:1;}
+.title-gradient{
+    color:white;
+    font-weight:700;
+    font-size:2rem;
+    margin:0 0 5px 0;
+    text-shadow:2px 2px 4px rgba(0,0,0,.1);
+}
+.header-subtitle{color:rgba(255,255,255,.95);font-size:1rem;font-weight:400}
+
+/* Botão secundário */
+.export-btn-secondary{
+    background:linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    color:white;
+    border:none;
+    padding:10px 20px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+    font-size:0.9rem;
+    transition:all 0.3s ease;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.export-btn-secondary:hover{
+    background:linear-gradient(135deg, #495057 0%, #343a40 100%);
+    transform:translateY(-2px);
 }
 
-html, body {
-    width: 100%;
-    height: 100%;
-    overflow-x: hidden;
+/* Filtros em linha compacta */
+.filters-container{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:15px;
+    margin-bottom:20px;
+    padding:20px;
+    background:white;
+    border-radius:16px;
+    box-shadow:0 4px 16px rgba(255,107,53,.1);
+    border:2px solid #ffe8dd;
+}
+.filter-item{display:flex;flex-direction:column}
+.filter-item label{
+    font-weight:600;
+    color:#FF6B35;
+    margin-bottom:8px;
+    font-size:.9rem;
+}
+.dates-container{
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:15px;
+    margin-top:10px;
+    padding-top:15px;
+    border-top:2px solid #ffe8dd;
 }
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #f8f9fa 0%, #fff5f0 50%, #ffe8dd 100%);
-    color: #2c3e50;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+/* Container para gráfico e estatísticas */
+.dashboard-top{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:20px;
+    margin-bottom:20px;
+}
+.graph-card{
+    background:white;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 4px 16px rgba(255,107,53,.1);
+    border:2px solid #ffe8dd;
+    transition:all .3s ease;
+    position:relative;
+    overflow:hidden;
+}
+.graph-card::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:4px;
+    background:linear-gradient(90deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%);
+}
+.stats-card{
+    background:white;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 4px 16px rgba(255,107,53,.1);
+    border:2px solid #ffe8dd;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+.stat-item{
+    background:linear-gradient(135deg, #fff5f0 0%, #ffe8dd 100%);
+    padding:15px;
+    border-radius:12px;
+    border-left:4px solid #FF6B35;
+}
+.stat-value{
+    font-size:2rem;
+    font-weight:700;
+    color:#FF6B35;
+    margin:5px 0;
+}
+.stat-label{
+    font-size:0.9rem;
+    color:#666;
+    font-weight:500;
 }
 
-#react-entry-point {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
+/* Tabela */
+.table-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:15px;
+    flex-wrap:wrap;
+    gap:10px;
+}
+h3{
+    color:#FF6B35;
+    font-size:1.5rem;
+    margin:0;
+    font-weight:700;
+    position:relative;
+    display:inline-block;
+}
+h3::after{
+    content:'';
+    position:absolute;
+    bottom:-5px;
+    left:0;
+    width:60px;
+    height:3px;
+    background:linear-gradient(90deg,#FF6B35,#FF8C42);
+    border-radius:2px;
+}
+.table-container{
+    background:white;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 4px 16px rgba(255,107,53,.1);
+    border:2px solid #ffe8dd;
+}
+.dash-table-container{
+    border-radius:12px;
+    overflow:hidden;
+    border:2px solid #ffe8dd;
+    max-height:600px;
+    overflow-y:auto;
+}
+.dash-spreadsheet{font-size:.9rem}
+.dash-table-header{
+    background:linear-gradient(135deg,#FF6B35 0%,#FF8C42 100%)!important;
+    color:white!important;
+    font-weight:600!important;
+    position:sticky;
+    top:0;
+    z-index:100;
+}
+.dash-table-header th{
+    background:inherit!important;
+    color:white!important;
+    border-right:1px solid rgba(255,255,255,.15)!important;
+    padding:16px!important;
+    white-space:nowrap;
+}
+.dash-table-row{
+    border-bottom:1px solid #ffe8dd;
+    transition:background .2s ease;
+}
+.dash-table-row:hover{
+    background:linear-gradient(135deg,#fff5f0 0%,#ffe8dd 100%)!important;
+}
+.dash-table-cell{padding:12px!important; white-space:nowrap;}
+
+/* Dropdown styling */
+.Select-control{
+    border:2px solid #ffe8dd!important;
+    border-radius:8px!important;
+    transition:all .2s ease!important;
+    background:white!important;
+    min-height:42px!important;
+}
+.Select-control:hover{
+    border-color:#FF8C42!important;
+    box-shadow:0 0 0 3px rgba(255,107,53,.1)!important;
+}
+.Select-control.is-focused{
+    border-color:#FF6B35!important;
+    box-shadow:0 0 0 3px rgba(255,107,53,.15)!important;
 }
 
-/* ============================================ */
+/* Responsive */
+@media (max-width:1200px){
+    .filters-container{grid-template-columns:repeat(2, 1fr)}
+    .dashboard-top{grid-template-columns:1fr}
+}
+@media (max-width:768px){
+    .filters-container{grid-template-columns:1fr}
+    .title-container{flex-direction:column;text-align:center}
+    .title-left{text-align:center}
+    .table-header{flex-direction:column;align-items:stretch}
+}
+
+/* Scrollbar laranja */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#ffe8dd;border-radius:4px}
+::-webkit-scrollbar-thumb{background:linear-gradient(135deg,#FF6B35,#FF8C42);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(135deg,#FF8C42,#FFB085)}
+
 /* SIDEBAR FIXA */
-/* ============================================ */
-.sidebar {
-    width: 260px;
-    background: linear-gradient(180deg, #FF6B35 0%, #F7931E 50%, #FF8C42 100%);
-    padding: 0;
-    box-shadow: 4px 0 20px rgba(255, 107, 53, 0.15);
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    height: 100vh;
-    overflow-y: auto;
-    z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+.sidebar{position:fixed;left:0;top:0;width:250px;height:100vh;background:linear-gradient(180deg,#FF6B35 0%,#F7931E 50%,#FF8C42 100%);box-shadow:4px 0 20px rgba(255,107,53,0.2);z-index:1000;display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{color:white;font-size:1.5rem;font-weight:800;text-align:center;padding:25px 20px;background:rgba(0,0,0,0.1);border-bottom:1px solid rgba(255,255,255,0.15)}
+.sidebar-item{padding:15px 20px;color:rgba(255,255,255,0.9);font-weight:500;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:12px;border-left:3px solid transparent}
+.sidebar-item:hover{background:rgba(255,255,255,0.12);color:white;border-left-color:white;padding-left:25px}
+.sidebar-item.active{background:rgba(255,255,255,0.2);color:white;border-left-color:white;font-weight:600}
+.main-with-sidebar{margin-left:250px;width:calc(100% - 250px)}
 
-.sidebar-logo {
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 800;
-    text-align: center;
-    padding: 25px 20px;
-    background: rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-    letter-spacing: -0.5px;
+@media(max-width:768px){
+.sidebar{width:70px}
+.sidebar-logo{font-size:1.2rem;padding:20px 10px}
+.sidebar-item{padding:14px;justify-content:center;font-size:1.2rem}
+.sidebar-item span:last-child{display:none}
+.main-with-sidebar{margin-left:70px;width:calc(100% - 70px)}
 }
-
-.sidebar-item {
-    background: transparent;
-    padding: 14px 20px;
-    color: rgba(255, 255, 255, 0.85);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border-left: 3px solid transparent;
-    font-size: 0.95rem;
-}
-
-.sidebar-item:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: white;
-    border-left-color: white;
-    padding-left: 25px;
-}
-
-.sidebar-item.active {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border-left-color: white;
-    font-weight: 600;
-}
-
-.sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
-}
-
-/* ============================================ */
-/* ÁREA PRINCIPAL */
-/* ============================================ */
-.main-content {
-    margin-left: 260px;
-    flex: 1;
-    padding: 24px;
-    width: calc(100% - 260px);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* ============================================ */
-/* HEADER */
-/* ============================================ */
-.title-container {
-    background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 50%, #FFB085 100%);
-    padding: 30px 35px;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(255, 107, 53, 0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-    position: relative;
-    overflow: hidden;
-}
-
-.title-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
-    transform: translate(30%, -30%);
-}
-
-.title-left {
-    flex: 1;
-    min-width: 250px;
-    z-index: 1;
-}
-
-.title-gradient {
-    color: white;
-    font-weight: 800;
-    font-size: 2rem;
-    margin: 0 0 8px 0;
-    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.15);
-    letter-spacing: -0.5px;
-}
-
-.header-subtitle {
-    color: rgba(255, 255, 255, 0.95);
-    font-size: 1rem;
-    font-weight: 400;
-    margin-bottom: 5px;
-}
-
-/* ============================================ */
-/* FILTROS */
-/* ============================================ */
-.filters-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    padding: 24px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(255, 107, 53, 0.1);
-}
-
-.filter-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.filter-item label {
-    font-weight: 600;
-    color: #FF6B35;
-    font-size: 0.875rem;
-    letter-spacing: 0.3px;
-}
-
-.dates-container {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-top: 8px;
-    padding-top: 20px;
-    border-top: 2px solid #ffe8dd;
-}
-
-/* ============================================ */
-/* DASHBOARD TOP - GRÁFICO E STATS */
-/* ============================================ */
-.dashboard-top {
-    display: grid;
-    grid-template-columns: 1.8fr 1fr;
-    gap: 20px;
-}
-
-.graph-card, .stats-card {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(255, 107, 53, 0.1);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.graph-card::before, .stats-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #FF6B35 0%, #FF8C42 50%, #FFB085 100%);
-}
-
-.graph-card:hover, .stats-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-}
-
-.stats-card {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.stat-item {
-    background: linear-gradient(135deg, #fff8f5 0%, #ffe8dd 100%);
-    padding: 18px;
-    border-radius: 12px;
-    border-left: 4px solid #FF6B35;
-    transition: all 0.2s ease;
-}
-
-.stat-item:hover {
-    transform: translateX(4px);
-    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.15);
-}
-
-.stat-value {
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: #FF6B35;
-    margin: 8px 0 4px 0;
-    line-height: 1;
-}
-
-.stat-label {
-    font-size: 0.875rem;
-    color: #666;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* ============================================ */
-/* TABELA */
-/* ============================================ */
-.table-container {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(255, 107, 53, 0.1);
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-
-h3 {
-    color: #FF6B35;
-    font-size: 1.5rem;
-    margin: 0;
-    font-weight: 700;
-    position: relative;
-    display: inline-block;
-}
-
-h3::after {
-    content: '';
-    position: absolute;
-    bottom: -6px;
-    left: 0;
-    width: 50px;
-    height: 3px;
-    background: linear-gradient(90deg, #FF6B35, #FF8C42);
-    border-radius: 2px;
-}
-
-.export-btn-secondary {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    color: white;
-    border: none;
-    padding: 11px 22px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.2);
-}
-
-.export-btn-secondary:hover {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(108, 117, 125, 0.3);
-}
-
-.dash-table-container {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 107, 53, 0.1);
-    flex: 1;
-    min-height: 450px;
-    max-height: calc(100vh - 650px);
-}
-
-.dash-spreadsheet {
-    font-size: 0.9rem;
-}
-
-.dash-table-header {
-    background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%) !important;
-    color: white !important;
-    font-weight: 600 !important;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-.dash-table-header th {
-    background: inherit !important;
-    color: white !important;
-    border-right: 1px solid rgba(255, 255, 255, 0.15) !important;
-    padding: 16px !important;
-    white-space: nowrap;
-}
-
-.dash-table-row {
-    border-bottom: 1px solid #ffe8dd;
-    transition: background 0.2s ease;
-}
-
-.dash-table-row:hover {
-    background: linear-gradient(135deg, #fff8f5 0%, #ffe8dd 100%) !important;
-}
-
-.dash-table-cell {
-    padding: 14px !important;
-    white-space: nowrap;
-}
-
-/* ============================================ */
-/* DROPDOWN STYLING */
-/* ============================================ */
-.Select-control {
-    border: 2px solid #e9ecef !important;
-    border-radius: 10px !important;
-    transition: all 0.2s ease !important;
-    background: white !important;
-    min-height: 44px !important;
-}
-
-.Select-control:hover {
-    border-color: #FF8C42 !important;
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.08) !important;
-}
-
-.Select-control.is-focused {
-    border-color: #FF6B35 !important;
-    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15) !important;
-}
-
-/* ============================================ */
-/* SCROLLBAR PERSONALIZADA */
-/* ============================================ */
-::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #FF6B35, #FF8C42);
-    border-radius: 5px;
-    transition: background 0.2s;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #FF8C42, #FFB085);
-}
-
-.dash-table-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-.dash-table-container::-webkit-scrollbar-track {
-    background: #ffe8dd;
-}
-
-.dash-table-container::-webkit-scrollbar-thumb {
-    background: #FF8C42;
-    border-radius: 4px;
-}
-
-/* ============================================ */
-/* RESPONSIVIDADE TABLET */
-/* ============================================ */
-@media (max-width: 1200px) {
-    .filters-container {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 14px;
-        padding: 20px;
-    }
-    
-    .dashboard-top {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .stat-value {
-        font-size: 1.8rem;
-    }
-    
-    .title-gradient {
-        font-size: 1.75rem;
-    }
-    
-    .graph-card, .stats-card {
-        padding: 20px;
-    }
-}
-
-/* ============================================ */
-/* RESPONSIVIDADE MOBILE */
-/* ============================================ */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 70px;
-        padding: 0;
-    }
-    
-    .sidebar-logo {
-        font-size: 1.2rem;
-        padding: 20px 10px;
-    }
-    
-    .sidebar-item {
-        padding: 14px;
-        justify-content: center;
-        border-left: none;
-        border-bottom: 3px solid transparent;
-    }
-    
-    .sidebar-item span:last-child {
-        display: none;
-    }
-    
-    .sidebar-item:hover,
-    .sidebar-item.active {
-        padding-left: 14px;
-        border-left: none;
-        border-bottom-color: white;
-    }
-    
-    .main-content {
-        margin-left: 70px;
-        width: calc(100% - 70px);
-        padding: 16px;
-        gap: 16px;
-    }
-    
-    .title-container {
-        padding: 20px;
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .title-gradient {
-        font-size: 1.5rem;
-    }
-    
-    .header-subtitle {
-        font-size: 0.9rem;
-    }
-    
-    .filters-container {
-        grid-template-columns: 1fr;
-        padding: 16px;
-        gap: 12px;
-    }
-    
-    .dates-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .dashboard-top {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-    
-    .graph-card, .stats-card {
-        padding: 16px;
-    }
-    
-    .stat-value {
-        font-size: 1.6rem;
-    }
-    
-    .stat-label {
-        font-size: 0.8rem;
-    }
-    
-    .table-container {
-        padding: 16px;
-    }
-    
-    .table-header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-    
-    .export-btn-secondary {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .dash-table-container {
-        max-height: calc(100vh - 750px);
-        min-height: 350px;
-    }
-}
-
-/* ============================================ */
-/* RESPONSIVIDADE MOBILE PEQUENO */
-/* ============================================ */
-@media (max-width: 480px) {
-    .sidebar {
-        width: 60px;
-    }
-    
-    .sidebar-logo {
-        font-size: 1rem;
-        padding: 15px 5px;
-    }
-    
-    .sidebar-item {
-        padding: 12px;
-        font-size: 1.2rem;
-    }
-    
-    .main-content {
-        margin-left: 60px;
-        width: calc(100% - 60px);
-        padding: 12px;
-        gap: 12px;
-    }
-    
-    .title-gradient {
-        font-size: 1.3rem;
-    }
-    
-    .header-subtitle {
-        font-size: 0.85rem;
-    }
-    
-    .filters-container {
-        padding: 12px;
-    }
-    
-    .stat-value {
-        font-size: 1.4rem;
-    }
-    
-    h3 {
-        font-size: 1.2rem;
-    }
-    
-    .dash-table-cell {
-        padding: 10px !important;
-        font-size: 0.85rem;
-    }
-}
-
-/* ============================================ */
-/* ANIMAÇÕES SUAVES */
-/* ============================================ */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.graph-card, .stats-card, .table-container, .filters-container {
-    animation: fadeIn 0.4s ease-out;
-}
-
-/* ============================================ */
-/* ESTADOS DE LOADING */
-/* ============================================ */
-.loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 107, 53, 0.2);
-    border-radius: 50%;
-    border-top-color: #FF6B35;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-</style>
-</head>
-<body>
-{%app_entry%}
-{%config%}
-{%scripts%}
-{%renderer%}
-</body>
-</html>'''
+</style></head><body>{%app_entry%}{%config%}{%scripts%}{%renderer%}</body></html>'''
 
 app.layout = html.Div([
-    # Sidebar
+    # Sidebar Fixa
     html.Div([
         html.Div("📊 Dashboard", className="sidebar-logo"),
-        html.Div([
-            html.Span("🏠"),
-            html.Span(" Início")
-        ], className="sidebar-item active"),
-        html.Div([
-            html.Span("📈"),
-            html.Span(" Estatísticas")
-        ], className="sidebar-item"),
-        html.Div([
-            html.Span("🚚"),
-            html.Span(" Viagens")
-        ], className="sidebar-item"),
-        html.Div([
-            html.Span("📥"),
-            html.Span(" Exportar")
-        ], className="sidebar-item"),
-        html.Div([
-            html.Span("⚙️"),
-            html.Span(" Configurações")
-        ], className="sidebar-item"),
+        html.Div([html.Span("📈"), html.Span(" Previsão")], className="sidebar-item active"),
+        html.Div([html.Span("📅"), html.Span(" Programado")], className="sidebar-item"),
+        html.Div([html.Span("🚚"), html.Span(" Viagens")], className="sidebar-item"),
+        html.Div([html.Span("📊"), html.Span(" Relatórios")], className="sidebar-item"),
+        html.Div([html.Span("⚙️"), html.Span(" Configurações")], className="sidebar-item"),
     ], className="sidebar"),
     
-    # Main Content
+    # Conteúdo Principal
     html.Div([
-        # Header
+    # Header
+    html.Div([
+        html.Div([
+            html.H1("📊 Dashboard de Monitoramento de Viagens", className="title-gradient"),
+            html.Div("Visualize e exporte dados de viagens em tempo real", className="header-subtitle"),
+            html.Div(id="api-status", style={'color': 'rgba(255,255,255,.9)', 'fontSize': '0.85rem', 'marginTop': '5px'})
+        ], className="title-left"),
+    ], className="title-container"),
+    
+    dcc.Interval(id="interval", interval=20000, n_intervals=0),
+    dcc.Download(id="download-csv"),
+    
+    # Filtros
+    html.Div([
+        html.Div([
+            html.Label("ID (LT)"),
+            dcc.Dropdown(id="filtro-id", multi=True, placeholder="Todos os LTs", options=[])
+        ], className="filter-item"),
+        
+        html.Div([
+            html.Label("Destino"),
+            dcc.Dropdown(id="filtro-destino", multi=True, placeholder="Todos os destinos", options=[])
+        ], className="filter-item"),
+        
+        html.Div([
+            html.Label("Status"),
+            dcc.Dropdown(id="filtro-status", multi=True, placeholder="Todos os status", options=[])
+        ], className="filter-item"),
+        
+        html.Div([
+            html.Label("Limpar Filtros"),
+            html.Button(
+                "🗑️ Limpar Tudo",
+                id="btn-limpar",
+                style={
+                    'width': '100%',
+                    'height': '42px',
+                    'background': 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                    'color': 'white',
+                    'border': 'none',
+                    'borderRadius': '8px',
+                    'cursor': 'pointer',
+                    'fontWeight': '600'
+                }
+            )
+        ], className="filter-item"),
+        
+        # Datas
         html.Div([
             html.Div([
-                html.H1("📊 Dashboard de Monitoramento de Viagens", className="title-gradient"),
-                html.Div("Visualize e exporte dados de viagens em tempo real", className="header-subtitle"),
-                html.Div(id="api-status", style={'color': 'rgba(255,255,255,.9)', 'fontSize': '0.85rem', 'marginTop': '5px'})
-            ], className="title-left"),
-        ], className="title-container"),
-        
-        dcc.Interval(id="interval", interval=20000, n_intervals=0),
-        dcc.Download(id="download-csv"),
-        
-        # Filtros
-        html.Div([
-            html.Div([
-                html.Label("ID (LT)"),
-                dcc.Dropdown(id="filtro-id", multi=True, placeholder="Todos os LTs", options=[])
-            ], className="filter-item"),
-            
-            html.Div([
-                html.Label("Destino"),
-                dcc.Dropdown(id="filtro-destino", multi=True, placeholder="Todos os destinos", options=[])
-            ], className="filter-item"),
-            
-            html.Div([
-                html.Label("Status"),
-                dcc.Dropdown(id="filtro-status", multi=True, placeholder="Todos os status", options=[])
-            ], className="filter-item"),
-            
-            html.Div([
-                html.Label("Limpar Filtros"),
-                html.Button(
-                    "🗑️ Limpar Tudo",
-                    id="btn-limpar",
-                    style={
-                        'width': '100%',
-                        'height': '44px',
-                        'background': 'linear-gradient(135deg, #6c757d, #adb5bd)',
-                        'color': 'white',
-                        'border': 'none',
-                        'borderRadius': '10px',
-                        'cursor': 'pointer',
-                        'fontWeight': '600',
-                        'fontSize': '0.9rem',
-                        'transition': 'all 0.3s ease',
-                        'boxShadow': '0 4px 12px rgba(108, 117, 125, 0.2)'
-                    }
+                html.Label("Data Inicial"),
+                dcc.DatePickerSingle(
+                    id="filtro-data-inicial",
+                    display_format="DD/MM/YYYY",
+                    placeholder="DD/MM/AAAA",
+                    style={'width': '100%'}
                 )
             ], className="filter-item"),
             
-            # Datas
             html.Div([
-                html.Div([
-                    html.Label("Data Inicial"),
-                    dcc.DatePickerSingle(
-                        id="filtro-data-inicial",
-                        display_format="DD/MM/YYYY",
-                        placeholder="DD/MM/AAAA",
-                        style={'width': '100%'}
-                    )
-                ], className="filter-item"),
-                
-                html.Div([
-                    html.Label("Data Final"),
-                    dcc.DatePickerSingle(
-                        id="filtro-data-final",
-                        display_format="DD/MM/YYYY",
-                        placeholder="DD/MM/AAAA",
-                        style={'width': '100%'}
-                    )
-                ], className="filter-item")
-            ], className="dates-container")
-        ], className="filters-container"),
+                html.Label("Data Final"),
+                dcc.DatePickerSingle(
+                    id="filtro-data-final",
+                    display_format="DD/MM/YYYY",
+                    placeholder="DD/MM/AAAA",
+                    style={'width': '100%'}
+                )
+            ], className="filter-item")
+        ], className="dates-container")
+    ], className="filters-container"),
     
     # Gráfico e Estatísticas
     html.Div([
         html.Div([
             html.H3("Distribuição por Status", style={'marginBottom': '15px'}),
-            dcc.Graph(id="grafico", style={'height': '400px'}, config={'displayModeBar': False})
+            dcc.Graph(id="grafico", style={'height': '400px'})
         ], className="graph-card"),
         
         html.Div([
@@ -894,7 +447,7 @@ app.layout = html.Div([
                     'color': '#888',
                     'fontStyle': 'italic'
                 })
-            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px', 'flexWrap': 'wrap'})
+            ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px'})
         ], className="table-header"),
         
         dash_table.DataTable(
@@ -904,14 +457,14 @@ app.layout = html.Div([
             sort_action="native",
             filter_action="native",
             style_table={
-                "borderRadius": "8px",
+                "borderRadius": "6px",
                 "overflow": "hidden",
-                "minHeight": "450px"
+                "minHeight": "400px"
             },
             style_cell={
-                "padding": "14px",
+                "padding": "12px",
                 "textAlign": "left",
-                "fontFamily": "'Inter', sans-serif",
+                "fontFamily": "'Poppins', sans-serif",
                 "fontSize": "13px",
                 "whiteSpace": "normal",
                 "height": "auto",
@@ -926,7 +479,7 @@ app.layout = html.Div([
                 "color": "white",
                 "borderBottom": "2px solid #FF8C42",
                 "fontSize": "14px",
-                "padding": "16px",
+                "padding": "15px",
                 "textAlign": "left",
                 "position": "sticky",
                 "top": "0"
@@ -937,7 +490,7 @@ app.layout = html.Div([
             style_data_conditional=[
                 {
                     "if": {"row_index": "odd"},
-                    "backgroundColor": "#FFF8F5"
+                    "backgroundColor": "#FFF5F0"
                 },
                 {
                     "if": {"state": "selected"},
@@ -971,7 +524,7 @@ app.layout = html.Div([
             tooltip_duration=None
         )
     ], className="table-container")
-    ], className="main-content")
+    ], className="main-with-sidebar")
 ])
 
 # Callbacks
@@ -1157,25 +710,22 @@ def criar_grafico(df):
     
     fig.update_traces(
         textposition='outside',
-        textfont=dict(size=14, color="#333", family="Inter"),
-        marker=dict(line=dict(width=0))
+        textfont=dict(size=12, color="#333"),
+        marker=dict(line=dict(width=1, color='white'))
     )
     
     fig.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter", size=12),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
         xaxis=dict(
             title="Status",
             showgrid=False,
-            tickangle=0,
-            titlefont=dict(size=13, color="#666")
+            tickangle=0
         ),
         yaxis=dict(
             title="Quantidade",
             showgrid=True,
-            gridcolor='rgba(255,107,53,0.08)',
-            titlefont=dict(size=13, color="#666")
+            gridcolor='#ffe8dd'
         ),
         legend=dict(
             title="Status da Viagem",
@@ -1183,16 +733,10 @@ def criar_grafico(df):
             yanchor="bottom",
             y=1.02,
             xanchor="right",
-            x=1,
-            font=dict(size=11)
+            x=1
         ),
-        margin=dict(l=40, r=20, t=40, b=40),
-        hovermode="x unified",
-        hoverlabel=dict(
-            bgcolor="white",
-            font_size=12,
-            font_family="Inter"
-        )
+        margin=dict(l=20, r=20, t=40, b=40),
+        hovermode="x unified"
     )
     
     return fig
@@ -1203,14 +747,13 @@ def criar_grafico_fallback():
     fig.add_annotation(
         text="Aguardando dados...",
         showarrow=False,
-        font=dict(size=16, color="#999", family="Inter")
+        font=dict(size=16, color="#666")
     )
     fig.update_layout(
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
         xaxis=dict(showgrid=False, zeroline=False, visible=False),
-        yaxis=dict(showgrid=False, zeroline=False, visible=False),
-        margin=dict(l=20, r=20, t=20, b=20)
+        yaxis=dict(showgrid=False, zeroline=False, visible=False)
     )
     return fig
 
@@ -1270,5 +813,4 @@ if __name__ == "__main__":
     print("\n⚙️  API backend rodando em: http://localhost:8050")
     print("\n💡 Pressione CTRL+C para parar o servidor")
     print("="*70 + "\n")
-    port = int(os.getenv("PORT", 8051))
-    app.run(debug=False, port=port, host='0.0.0.0', use_reloader=False)
+    app.run(debug=False, port=8051, host='127.0.0.1', use_reloader=False)
