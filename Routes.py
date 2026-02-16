@@ -1,7 +1,28 @@
+# ============================================================================
+# ROUTES.PY - Funções que renderizam cada página do dashboard
+# ============================================================================
+# Este arquivo contém as funções que retornam o HTML/componentes Dash
+# para cada página do dashboard. Cada função é chamada pelo callback
+# renderizar_pagina() no frontend.py
+
 from dash import html, dcc, dash_table
 
+# ============================================================================
+# PÁGINA 1: PREVISÃO - Dashboard principal com filtros, gráficos e tabela
+# ============================================================================
 def pagina_previsao():
-    """Renderiza a página de Previsão com filtros e dashboard"""
+    """
+    Renderiza a página de Previsão (página principal)
+    
+    Componentes:
+    - Filtros: ID (LT), Destino, Status, Datas
+    - Gráfico: Distribuição por Status
+    - Estatísticas: Total, Em Trânsito, Parado, Finalizado
+    - Tabela: Dados detalhados com paginação e ordenação
+    
+    Returns:
+        html.Div: Componente Dash com toda a página
+    """
     return html.Div([
         html.Div([html.Div([html.Label("ID (LT)"), dcc.Dropdown(id="filtro-id", multi=True, placeholder="Todos os LTs", options=[])], className="filter-item"),
         html.Div([html.Label("Destino"), dcc.Dropdown(id="filtro-destino", multi=True, placeholder="Todos os destinos", options=[])], className="filter-item"),
@@ -50,8 +71,20 @@ def pagina_previsao():
     ], className="table-container")
     ])
 
+# ============================================================================
+# PÁGINA 2: PROGRAMADO - Viagens programadas com estatísticas
+# ============================================================================
 def pagina_programado():
-    """Renderiza a página de Viagens Programadas"""
+    """
+    Renderiza a página de Viagens Programadas
+    
+    Componentes:
+    - Estatísticas: Total Programado, Próximas 24h, Próximos 7 dias
+    - Lista: Próximas viagens com LT, rota e horário
+    
+    Returns:
+        html.Div: Componente Dash com a página de programado
+    """
     return html.Div([
         html.Div([
             html.H3("📅 Viagens Programadas", style={'color': '#FF6B35', 'marginBottom': '20px'}),
@@ -93,20 +126,55 @@ def pagina_programado():
         ], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})
     ])
 
+# ============================================================================
+# PÁGINA 3: VIAGENS - Página em construção
+# ============================================================================
 def pagina_viagens():
-    """Renderiza a página de Viagens"""
+    """
+    Renderiza a página de Viagens (em construção)
+    
+    Returns:
+        html.Div: Componente Dash com mensagem de construção
+    """
     return html.Div([html.Div([html.H3("🚚 Viagens", style={'color': '#FF6B35'}), html.Div("Conteúdo em construção", style={'padding': '40px', 'textAlign': 'center', 'color': '#999'})], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})])
 
+# ============================================================================
+# PÁGINA 4: RELATÓRIOS - Página em construção
+# ============================================================================
 def pagina_relatorios():
-    """Renderiza a página de Relatórios"""
+    """
+    Renderiza a página de Relatórios (em construção)
+    
+    Returns:
+        html.Div: Componente Dash com mensagem de construção
+    """
     return html.Div([html.Div([html.H3("📈 Relatórios", style={'color': '#FF6B35'}), html.Div("Conteúdo em construção", style={'padding': '40px', 'textAlign': 'center', 'color': '#999'})], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})])
 
+# ============================================================================
+# PÁGINA 5: CONFIGURAÇÕES - Página em construção
+# ============================================================================
 def pagina_config():
-    """Renderiza a página de Configurações"""
+    """
+    Renderiza a página de Configurações (em construção)
+    
+    Returns:
+        html.Div: Componente Dash com mensagem de construção
+    """
     return html.Div([html.Div([html.H3("⚙️ Configurações", style={'color': '#FF6B35'}), html.Div("Conteúdo em construção", style={'padding': '40px', 'textAlign': 'center', 'color': '#999'})], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})])
 
+# ============================================================================
+# FUNÇÃO AUXILIAR - Retorna a página baseado no nome
+# ============================================================================
 def get_pagina(nome_pagina):
-    """Retorna a página baseado no nome"""
+    """
+    Retorna o componente HTML da página solicitada
+    
+    Args:
+        nome_pagina (str): Nome da página ('previsao', 'programado', 'viagens', 'relatorios', 'config')
+    
+    Returns:
+        html.Div: Componente Dash da página solicitada
+    """
     paginas = {
         "previsao": pagina_previsao,
         "programado": pagina_programado,

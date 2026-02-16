@@ -1,4 +1,12 @@
-﻿# frontend.py
+﻿# ============================================================================
+# FRONTEND DO DASHBOARD - Interface Dash com navegação e callbacks
+# ============================================================================
+# Responsável por:
+# - Renderizar a UI com sidebar e conteúdo dinâmico
+# - Gerenciar navegação entre páginas
+# - Executar callbacks para atualizar dados e gráficos
+# - Exportar dados em CSV
+
 import dash
 from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import plotly.express as px
@@ -13,8 +21,13 @@ print("="*70)
 print("INICIANDO FRONTEND DO DASHBOARD")
 print("="*70)
 
+# ============================================================================
+# CONFIGURAÇÕES GLOBAIS
+# ============================================================================
+# URL da API backend para requisições
 API_URL = "http://localhost:8050"
 
+# Mapeamento de cores para cada status de viagem
 CORES_STATUS = {
     "Parado": "#dc3545",
     "Em trânsito": "#28a745",
@@ -23,7 +36,20 @@ CORES_STATUS = {
     "Cancelado": "#ffc107"
 }
 
+# ============================================================================
+# FUNÇÕES AUXILIARES - Requisições à API
+# ============================================================================
+
 def buscar_dados(filters=None):
+    """
+    Busca dados da API backend com filtros opcionais
+    
+    Args:
+        filters (dict): Dicionário com filtros (ids, destinos, status, datas)
+    
+    Returns:
+        dict: Resposta JSON da API com dados, colunas, estatísticas
+    """
     try:
         params = {}
         if filters:
@@ -46,6 +72,12 @@ def buscar_dados(filters=None):
         return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total': 0, 'transito': 0, 'parado': 0, 'finalizado': 0}, 'total_registros': 0}
 
 def buscar_filtros():
+    """
+    Busca opções de filtro da API backend
+    
+    Returns:
+        dict: Resposta JSON com opções para ids, destinos e status
+    """
     try:
         response = requests.get(f"{API_URL}/api/filtros", timeout=10)
         response.raise_for_status()
@@ -57,6 +89,10 @@ def buscar_filtros():
 app = dash.Dash(__name__)
 app.title = "Dashboard de Monitoramento de Viagens"
 
+# ============================================================================
+# SEÇÃO DE ESTILOS CSS - Define toda a aparência visual do dashboard
+# ============================================================================
+# Inclui: cores, fontes, layout responsivo, animações, temas
 app.index_string = '''<!DOCTYPE html><html><head>{%metas%}<title>{%title%}</title>{%favicon%}{%css%}<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
@@ -80,7 +116,7 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 
 .graph-card{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(255,107,53,.1);border:2px solid #ffe8dd;position:relative;overflow:hidden}
 .graph-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%)}
 .stats-card{background:white;border-radius:16px;padding:20px;box-shadow:0 4px 16px rgba(255,107,53,.1);border:2px solid #ffe8dd;display:flex;flex-direction:column;gap:15px}
-.stat-item{background:linear-gradient(135deg, #fff5f0 0%, #ffe8dd 100%);padding:15px;border-radius:12px;border-left:4px solid #FF6B35}
+.stat-item{background:linear-gradient(135deg, #fff5f0 0%, #ffe8dd 100%);padding:15px;border-radius:12px;border-left:4px solid #FF6B35;margin-bottom:10px}
 .stat-value{font-size:2rem;font-weight:700;color:#FF6B35;margin:5px 0}
 .stat-label{font-size:0.9rem;color:#666;font-weight:500}
 
@@ -116,7 +152,18 @@ h3::after{content:'';position:absolute;bottom:-5px;left:0;width:60px;height:3px;
 @media (max-width:768px){.filters-container{grid-template-columns:1fr}.title-container{flex-direction:column;text-align:center}.title-left{text-align:center}.table-header{flex-direction:column;align-items:stretch}.sidebar{width:70px}.sidebar-logo{font-size:1.2rem;padding:20px 10px}.sidebar-item{padding:14px;justify-content:center;font-size:1.2rem}.sidebar-item span:last-child{display:none}.main-with-sidebar{margin-left:70px;width:calc(100% - 70px)}}
 </style></head><body>{%app_entry%}{%config%}{%scripts%}{%renderer%}</body></html>'''
 
+# ============================================================================
+# SEÇÃO DE LAYOUT - Estrutura HTML do dashboard
+# ============================================================================
+# Componentes principais:
+# - Sidebar: Menu lateral fixo com navegação
+# - Header: Título e status da API
+# - Conteúdo dinâmico: Renderizado pelos callbacks
+# - Componentes auxiliares: Interval, Download, Store
 app.layout = html.Div([
+    # ========================================================================
+    # SIDEBAR - Menu lateral fixo com navegação entre páginas
+    # ========================================================================
     html.Div([
         html.Div("Dashboard", className="sidebar-logo"),
         html.Div([html.Span("📊"), html.Span(" Previsão")], id="menu-previsao", className="sidebar-item active"),
@@ -126,7 +173,13 @@ app.layout = html.Div([
         html.Div([html.Span("⚙️"), html.Span(" Configurações")], id="menu-config", className="sidebar-item"),
     ], className="sidebar"),
     
+    # ========================================================================
+    # CONTEÚDO PRINCIPAL - Área com header e conteúdo dinâmico
+    # ========================================================================
     html.Div([
+        # ====================================================================
+        # HEADER - Título, subtítulo e status da API
+        # ====================================================================
         html.Div([
             html.Div([
                 html.H1("📊 Dashboard de Monitoramento de Viagens", className="title-gradient"),
@@ -135,14 +188,27 @@ app.layout = html.Div([
             ], className="title-left"),
         ], className="title-container"),
         
-        dcc.Interval(id="interval", interval=20000, n_intervals=0),
-        dcc.Download(id="download-csv"),
-        dcc.Store(id="pagina-ativa", data="previsao"),
+        # ====================================================================
+        # COMPONENTES AUXILIARES - Interval, Download, Store
+        # ====================================================================
+        dcc.Interval(id="interval", interval=20000, n_intervals=0),  # Auto-refresh a cada 20s
+        dcc.Download(id="download-csv"),  # Para exportar dados
+        dcc.Store(id="pagina-ativa", data="previsao"),  # Armazena página ativa
         
+        # ====================================================================
+        # CONTEÚDO DINÂMICO - Renderizado pelos callbacks
+        # ====================================================================
         html.Div(id="conteudo-pagina")
     ], className="main-with-sidebar")
 ])
 
+# ============================================================================
+# SEÇÃO DE CALLBACKS - Lógica interativa do dashboard
+# ============================================================================
+# Callbacks executam quando inputs mudam e atualizam outputs
+# Ordem de execução: mudar_pagina → renderizar_pagina → atualizar_filtros → atualizar_dashboard
+
+# CALLBACK 1: Mudar página ao clicar no menu
 @app.callback(
     Output("pagina-ativa", "data"),
     Input("menu-previsao", "n_clicks"),
@@ -153,12 +219,22 @@ app.layout = html.Div([
     prevent_initial_call=True
 )
 def mudar_pagina(previsao, programado, viagens, relatorios, config):
+    """
+    Detecta qual menu foi clicado e atualiza a página ativa
+    
+    Args:
+        previsao, programado, viagens, relatorios, config: Número de cliques em cada menu
+    
+    Returns:
+        str: Nome da página ativa ('previsao', 'programado', 'viagens', 'relatorios', 'config')
+    """
     if not callback_context.triggered:
         return "previsao"
     trigger_id = callback_context.triggered[0]["prop_id"].split(".")[0]
     paginas = {"menu-previsao": "previsao", "menu-programado": "programado", "menu-viagens": "viagens", "menu-relatorios": "relatorios", "menu-config": "config"}
     return paginas.get(trigger_id, "previsao")
 
+# CALLBACK 2: Renderizar página e atualizar menu ativo
 @app.callback(
     Output("conteudo-pagina", "children"),
     Output("menu-previsao", "className"),
@@ -169,11 +245,21 @@ def mudar_pagina(previsao, programado, viagens, relatorios, config):
     Input("pagina-ativa", "data")
 )
 def renderizar_pagina(pagina):
+    """
+    Renderiza o conteúdo da página selecionada e marca menu como ativo
+    
+    Args:
+        pagina (str): Nome da página ativa
+    
+    Returns:
+        tuple: Conteúdo da página + classes CSS para cada menu item
+    """
     classes = {"previsao": "sidebar-item", "programado": "sidebar-item", "viagens": "sidebar-item", "relatorios": "sidebar-item", "config": "sidebar-item"}
     classes[pagina] = "sidebar-item active"
     conteudo = get_pagina(pagina)
     return conteudo, classes["previsao"], classes["programado"], classes["viagens"], classes["relatorios"], classes["config"]
 
+# CALLBACK 3: Atualizar opções de filtro da API
 @app.callback(
     Output("filtro-id", "options"),
     Output("filtro-destino", "options"),
@@ -182,6 +268,15 @@ def renderizar_pagina(pagina):
     Input("interval", "n_intervals")
 )
 def atualizar_filtros(_):
+    """
+    Busca opções de filtro da API e verifica saúde do servidor
+    
+    Args:
+        _ (int): Número de intervalos (não usado)
+    
+    Returns:
+        tuple: Opções para cada filtro + status da API
+    """
     try:
         response = buscar_filtros()
         if response.get('success'):
@@ -199,6 +294,7 @@ def atualizar_filtros(_):
         print(f"Erro ao atualizar filtros: {e}")
         return [], [], [], "❌ Servidor offline"
 
+# CALLBACK 4: Limpar todos os filtros
 @app.callback(
     Output("filtro-id", "value"),
     Output("filtro-destino", "value"),
@@ -209,8 +305,18 @@ def atualizar_filtros(_):
     prevent_initial_call=True
 )
 def limpar_filtros(n_clicks):
+    """
+    Reseta todos os filtros para valores vazios
+    
+    Args:
+        n_clicks (int): Número de cliques no botão
+    
+    Returns:
+        tuple: Valores vazios para todos os filtros
+    """
     return None, None, None, None, None
 
+# CALLBACK 5: Atualizar dashboard com dados filtrados
 @app.callback(
     Output("grafico", "figure"),
     Output("tabela", "columns"),
@@ -229,6 +335,16 @@ def limpar_filtros(n_clicks):
     Input("interval", "n_intervals")
 )
 def atualizar_dashboard(ids, destinos, status, data_inicial, data_final, n_intervals):
+    """
+    Busca dados da API com filtros e atualiza gráfico, tabela e estatísticas
+    
+    Args:
+        ids, destinos, status, data_inicial, data_final: Filtros aplicados
+        n_intervals (int): Número de intervalos (para auto-refresh)
+    
+    Returns:
+        tuple: Gráfico, colunas da tabela, dados, contador, timestamp, estatísticas
+    """
     filters = {}
     if ids:
         filters['ids'] = ids
@@ -275,6 +391,15 @@ def atualizar_dashboard(ids, destinos, status, data_inicial, data_final, n_inter
     )
 
 def criar_grafico(df):
+    """
+    Cria gráfico de barras com distribuição por status
+    
+    Args:
+        df (pd.DataFrame): DataFrame com dados
+    
+    Returns:
+        plotly.graph_objects.Figure: Gráfico de barras
+    """
     if df.empty or 'Status_da_Viagem' not in df.columns:
         return criar_grafico_fallback()
     
@@ -287,6 +412,12 @@ def criar_grafico(df):
     return fig
 
 def criar_grafico_fallback():
+    """
+    Cria gráfico vazio com mensagem de carregamento
+    
+    Returns:
+        plotly.graph_objects.Figure: Gráfico vazio
+    """
     fig = go.Figure()
     fig.add_annotation(text="Aguardando dados...", showarrow=False, font=dict(size=16, color="#666"))
     fig.update_layout(plot_bgcolor="white", paper_bgcolor="white", xaxis=dict(showgrid=False, zeroline=False, visible=False), yaxis=dict(showgrid=False, zeroline=False, visible=False))
@@ -303,6 +434,16 @@ def criar_grafico_fallback():
     prevent_initial_call=True
 )
 def exportar_csv(n_clicks, ids, destinos, status, data_inicial, data_final):
+    """
+    Exporta dados filtrados em CSV
+    
+    Args:
+        n_clicks (int): Número de cliques no botão
+        ids, destinos, status, data_inicial, data_final: Filtros aplicados
+    
+    Returns:
+        dcc.send_bytes: Arquivo CSV para download
+    """
     if not n_clicks:
         return dash.no_update
     
@@ -331,6 +472,11 @@ def exportar_csv(n_clicks, ids, destinos, status, data_inicial, data_final):
     except Exception as e:
         print(f"Erro ao exportar: {e}")
         return dcc.send_string("Erro ao exportar dados", "erro_exportacao.txt")
+
+
+# ============================================================================
+# INICIALIZAÇÃO DO SERVIDOR
+# ============================================================================
 
 if __name__ == "__main__":
     print("\n" + "="*70)
