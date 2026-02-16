@@ -70,7 +70,7 @@ app.index_string = '''<!DOCTYPE html><html><head>{%metas%}<title>{%title%}</titl
 body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#fff5f0 0%,#ffe8dd 50%,#ffd4c4 100%);min-height:100vh;padding:20px;margin:0;overflow-x:hidden}
 #react-entry-point{width:100%;max-width:100vw;overflow-x:hidden}
 
-.title-container{background:linear-gradient(135deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%);padding:25px 30px;box-shadow:0 2px 10px rgba(255,107,53,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;width:100%;box-sizing:border-box}
+.title-container{background:linear-gradient(135deg,#FF6B35 0%,#FF8C42 50%,#FFB085 100%);padding:25px 30px;border-radius:16px;box-shadow:0 2px 10px rgba(255,107,53,.15);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:15px;width:100%;box-sizing:border-box}
 .title-left{flex:1}
 .title-gradient{color:white;font-weight:700;font-size:2rem;margin:0 0 5px 0;text-shadow:2px 2px 4px rgba(0,0,0,.1)}
 .header-subtitle{color:rgba(255,255,255,.95);font-size:1rem;font-weight:400}
