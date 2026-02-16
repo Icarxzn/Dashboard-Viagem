@@ -58,8 +58,9 @@ class DataManager:
                 self.creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
                 logger.info("Autenticação via variável de ambiente")
             else:
-                # Fallback para arquivo local
-                self.creds = Credentials.from_service_account_file("account.json", scopes=SCOPES)
+                # Fallback para arquivo local - procurar no diretório correto
+                account_path = os.path.join(os.path.dirname(__file__), "account.json")
+                self.creds = Credentials.from_service_account_file(account_path, scopes=SCOPES)
                 logger.info("Autenticação via arquivo account.json")
             
             self.gc = gspread.authorize(self.creds)
