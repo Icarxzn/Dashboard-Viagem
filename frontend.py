@@ -1,12 +1,13 @@
 ﻿# frontend.py
 import dash
-from dash import dcc, html, Input, Output, State, dash_table
+from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import plotly.express as px
 import plotly.graph_objects as go
 import pandas as pd
 import requests
 from datetime import datetime
 import json
+from Routes import get_pagina
 
 print("="*70)
 print("INICIANDO FRONTEND DO DASHBOARD")
@@ -23,7 +24,6 @@ CORES_STATUS = {
 }
 
 def buscar_dados(filters=None):
-    """Busca dados da API backend"""
     try:
         params = {}
         if filters:
@@ -43,16 +43,9 @@ def buscar_dados(filters=None):
         return response.json()
     except Exception as e:
         print(f"Erro ao buscar dados: {e}")
-        return {
-            'success': False,
-            'dados': [],
-            'colunas': [],
-            'estatisticas': {'total': 0, 'transito': 0, 'parado': 0, 'finalizado': 0},
-            'total_registros': 0
-        }
+        return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total': 0, 'transito': 0, 'parado': 0, 'finalizado': 0}, 'total_registros': 0}
 
 def buscar_filtros():
-    """Busca opções de filtro da API"""
     try:
         response = requests.get(f"{API_URL}/api/filtros", timeout=10)
         response.raise_for_status()
@@ -126,11 +119,11 @@ h3::after{content:'';position:absolute;bottom:-5px;left:0;width:60px;height:3px;
 app.layout = html.Div([
     html.Div([
         html.Div("Dashboard", className="sidebar-logo"),
-        html.Div([html.Span("📊"), html.Span(" Previsão")], className="sidebar-item active"),
-        html.Div([html.Span("📅"), html.Span(" Programado")], className="sidebar-item"),
-        html.Div([html.Span("🚚"), html.Span(" Viagens")], className="sidebar-item"),
-        html.Div([html.Span("📈"), html.Span(" Relatórios")], className="sidebar-item"),
-        html.Div([html.Span("⚙️"), html.Span(" Configurações")], className="sidebar-item"),
+        html.Div([html.Span("📊"), html.Span(" Previsão")], id="menu-previsao", className="sidebar-item active"),
+        html.Div([html.Span("📅"), html.Span(" Programado")], id="menu-programado", className="sidebar-item"),
+        html.Div([html.Span("🚚"), html.Span(" Viagens")], id="menu-viagens", className="sidebar-item"),
+        html.Div([html.Span("📈"), html.Span(" Relatórios")], id="menu-relatorios", className="sidebar-item"),
+        html.Div([html.Span("⚙️"), html.Span(" Configurações")], id="menu-config", className="sidebar-item"),
     ], className="sidebar"),
     
     html.Div([
@@ -144,55 +137,42 @@ app.layout = html.Div([
         
         dcc.Interval(id="interval", interval=20000, n_intervals=0),
         dcc.Download(id="download-csv"),
+        dcc.Store(id="pagina-ativa", data="previsao"),
         
-        html.Div([
-            html.Div([html.Label("ID (LT)"), dcc.Dropdown(id="filtro-id", multi=True, placeholder="Todos os LTs", options=[])], className="filter-item"),
-            html.Div([html.Label("Destino"), dcc.Dropdown(id="filtro-destino", multi=True, placeholder="Todos os destinos", options=[])], className="filter-item"),
-            html.Div([html.Label("Status"), dcc.Dropdown(id="filtro-status", multi=True, placeholder="Todos os status", options=[])], className="filter-item"),
-            html.Div([html.Label("Limpar Filtros"), html.Button("🗑️ Limpar Tudo", id="btn-limpar", style={'width': '100%', 'height': '42px', 'background': 'linear-gradient(135deg, #6c757d, #adb5bd)', 'color': 'white', 'border': 'none', 'borderRadius': '8px', 'cursor': 'pointer', 'fontWeight': '600'})], className="filter-item"),
-            html.Div([
-                html.Div([html.Label("Data Inicial"), dcc.DatePickerSingle(id="filtro-data-inicial", display_format="DD/MM/YYYY", placeholder="DD/MM/AAAA", style={'width': '100%'})], className="filter-item"),
-                html.Div([html.Label("Data Final"), dcc.DatePickerSingle(id="filtro-data-final", display_format="DD/MM/YYYY", placeholder="DD/MM/AAAA", style={'width': '100%'})], className="filter-item")
-            ], className="dates-container")
-        ], className="filters-container"),
-        
-        html.Div([
-            html.Div([html.H3("Distribuição por Status", style={'marginBottom': '15px'}), dcc.Graph(id="grafico", style={'height': '400px'})], className="graph-card"),
-            html.Div([html.H3("Resumo Estatístico", style={'marginBottom': '15px'}), html.Div([html.Div(id="stat-total", className="stat-item"), html.Div(id="stat-transito", className="stat-item"), html.Div(id="stat-parado", className="stat-item"), html.Div(id="stat-finalizado", className="stat-item")])], className="stats-card")
-        ], className="dashboard-top"),
-        
-        html.Div([
-            html.Div([
-                html.H3("📋 Dados Detalhados"),
-                html.Div([
-                    html.Button([html.Span("📥"), " Exportar Tabela"], id="btn-exportar-tabela", className="export-btn-secondary"),
-                    html.Div([html.Span("Mostrando ", style={'color': '#666', 'marginLeft': '15px'}), html.Span(id="contador-registros", style={'fontWeight': 'bold', 'color': '#FF6B35'}), html.Span(" registros", style={'color': '#666'})], style={'marginLeft': '15px', 'fontSize': '0.9rem'}),
-                    html.Div(id="ultima-atualizacao", style={'marginLeft': '15px', 'fontSize': '0.85rem', 'color': '#888', 'fontStyle': 'italic'})
-                ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px'})
-            ], className="table-header"),
-            
-            dash_table.DataTable(
-                id="tabela",
-                page_size=20,
-                page_current=0,
-                sort_action="native",
-                style_table={"borderRadius": "6px", "overflow": "hidden", "minHeight": "400px"},
-                style_cell={"padding": "12px", "textAlign": "left", "fontFamily": "'Poppins', sans-serif", "fontSize": "13px", "whiteSpace": "normal", "height": "auto", "minWidth": "100px", "maxWidth": "200px", "overflow": "hidden", "textOverflow": "ellipsis"},
-                style_header={"fontWeight": "700", "backgroundColor": "#FF6B35", "color": "white", "borderBottom": "2px solid #FF8C42", "fontSize": "14px", "padding": "15px", "textAlign": "left", "position": "sticky", "top": "0"},
-                style_data={"border": "1px solid #ffe8dd"},
-                style_data_conditional=[
-                    {"if": {"row_index": "odd"}, "backgroundColor": "#FFF5F0"},
-                    {"if": {"state": "selected"}, "backgroundColor": "#FFE8DD !important", "border": "2px solid #FF6B35"},
-                    {"if": {"column_id": "Status_da_Viagem", "filter_query": "{Status_da_Viagem} = 'Parado'"}, "color": "#dc3545", "fontWeight": "bold"},
-                    {"if": {"column_id": "Status_da_Viagem", "filter_query": "{Status_da_Viagem} = 'Em trânsito'"}, "color": "#28a745", "fontWeight": "bold"}
-                ],
-                style_cell_conditional=[{"if": {"column_id": "trip_number"}, "fontWeight": "600", "color": "#FF6B35"}],
-                tooltip_data=[],
-                tooltip_duration=None
-            )
-        ], className="table-container")
+        html.Div(id="conteudo-pagina")
     ], className="main-with-sidebar")
 ])
+
+@app.callback(
+    Output("pagina-ativa", "data"),
+    Input("menu-previsao", "n_clicks"),
+    Input("menu-programado", "n_clicks"),
+    Input("menu-viagens", "n_clicks"),
+    Input("menu-relatorios", "n_clicks"),
+    Input("menu-config", "n_clicks"),
+    prevent_initial_call=True
+)
+def mudar_pagina(previsao, programado, viagens, relatorios, config):
+    if not callback_context.triggered:
+        return "previsao"
+    trigger_id = callback_context.triggered[0]["prop_id"].split(".")[0]
+    paginas = {"menu-previsao": "previsao", "menu-programado": "programado", "menu-viagens": "viagens", "menu-relatorios": "relatorios", "menu-config": "config"}
+    return paginas.get(trigger_id, "previsao")
+
+@app.callback(
+    Output("conteudo-pagina", "children"),
+    Output("menu-previsao", "className"),
+    Output("menu-programado", "className"),
+    Output("menu-viagens", "className"),
+    Output("menu-relatorios", "className"),
+    Output("menu-config", "className"),
+    Input("pagina-ativa", "data")
+)
+def renderizar_pagina(pagina):
+    classes = {"previsao": "sidebar-item", "programado": "sidebar-item", "viagens": "sidebar-item", "relatorios": "sidebar-item", "config": "sidebar-item"}
+    classes[pagina] = "sidebar-item active"
+    conteudo = get_pagina(pagina)
+    return conteudo, classes["previsao"], classes["programado"], classes["viagens"], classes["relatorios"], classes["config"]
 
 @app.callback(
     Output("filtro-id", "options"),
