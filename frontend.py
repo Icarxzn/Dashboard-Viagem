@@ -86,6 +86,75 @@ def buscar_filtros():
         print(f"Erro ao buscar filtros: {e}")
         return {'success': False, 'opcoes': {}}
 
+def buscar_programado():
+    """
+    Busca dados de viagens programadas da API backend
+    
+    Returns:
+        dict: Resposta JSON com estatísticas e próximas viagens
+    """
+    try:
+        response = requests.get(f"{API_URL}/api/programado", timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Erro ao buscar programado: {e}")
+        return {'success': False, 'estatisticas': {'total_programado': 0, 'proximas_24h': 0, 'proximos_7dias': 0}, 'proximas_viagens': []}
+
+def buscar_programado_filtrado(data=None, turno=None, status=None):
+    """
+    Busca dados de viagens programadas com filtros
+    
+    Args:
+        data (str): Data (YYYY-MM-DD)
+        turno (str): Turno (Manhã, Tarde, Noite)
+        status (str): Status
+    
+    Returns:
+        dict: Resposta JSON com dados, colunas e estatísticas (sacas, scuttle, palete, total)
+    """
+    try:
+        params = {}
+        if data:
+            params['data'] = data
+        if turno:
+            params['turno'] = turno
+        if status:
+            params['status'] = status
+        
+        response = requests.get(f"{API_URL}/api/programado", params=params, timeout=30)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Erro ao buscar programado filtrado: {e}")
+        return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total_sacas': 0, 'total_scuttle': 0, 'total_palete': 0, 'total_geral': 0}, 'total_registros': 0}
+    """
+    Busca dados de viagens programadas com filtros
+    
+    Args:
+        data_inicial (str): Data inicial (YYYY-MM-DD)
+        data_final (str): Data final (YYYY-MM-DD)
+        turno (str): Turno (Manhã, Tarde, Noite)
+    
+    Returns:
+        dict: Resposta JSON com dados, colunas e estatísticas (sacas, scuttle, total)
+    """
+    try:
+        params = {}
+        if data_inicial:
+            params['data_inicial'] = data_inicial
+        if data_final:
+            params['data_final'] = data_final
+        if turno:
+            params['turno'] = turno
+        
+        response = requests.get(f"{API_URL}/api/programado", params=params, timeout=30)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        print(f"Erro ao buscar programado filtrado: {e}")
+        return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total_sacas': 0, 'total_scuttle': 0, 'total_palete': 0, 'total_geral': 0}, 'total_registros': 0}
+
 app = dash.Dash(__name__)
 app.title = "Dashboard de Monitoramento de Viagens"
 
@@ -472,6 +541,110 @@ def exportar_csv(n_clicks, ids, destinos, status, data_inicial, data_final):
     except Exception as e:
         print(f"Erro ao exportar: {e}")
         return dcc.send_string("Erro ao exportar dados", "erro_exportacao.txt")
+
+# CALLBACK 6: Limpar filtros da página programado
+@app.callback(
+    Output("filtro-prog-data", "date"),
+    Output("filtro-prog-turno", "value"),
+    Output("filtro-prog-status", "value"),
+    Input("btn-limpar-programado", "n_clicks"),
+    prevent_initial_call=True
+)
+def limpar_filtros_programado(n_clicks):
+    """
+    Reseta todos os filtros da página programado
+    
+    Args:
+        n_clicks (int): Número de cliques no botão
+    
+    Returns:
+        tuple: Valores vazios para todos os filtros
+    """
+    return None, "", ""
+
+# CALLBACK 7: Atualizar dados da página de programado
+@app.callback(
+    Output("stat-total-sacas", "children"),
+    Output("stat-total-scuttle", "children"),
+    Output("stat-total-palete", "children"),
+    Output("stat-total-geral", "children"),
+    Output("tabela-programado", "columns"),
+    Output("tabela-programado", "data"),
+    Output("contador-registros-programado", "children"),
+    Output("ultima-atualizacao-programado", "children"),
+    Input("filtro-prog-data", "date"),
+    Input("filtro-prog-turno", "value"),
+    Input("filtro-prog-status", "value"),
+    Input("interval-programado", "n_intervals")
+)
+def atualizar_programado(data, turno, status, n_intervals):
+    """
+    Atualiza dados da página de viagens programadas com filtros
+    
+    Args:
+        data (str): Data
+        turno (str): Turno selecionado
+        status (str): Status selecionado
+        n_intervals (int): Número de intervalos (para auto-refresh)
+    
+    Returns:
+        tuple: Estatísticas (sacas, scuttle, palete, total), colunas, dados, contador e timestamp
+    """
+    try:
+        # Buscar dados com filtros
+        response = buscar_programado_filtrado(data, turno if turno else None, status if status else None)
+        
+        if not response.get('success'):
+            return (
+                "0", "0", "0", "0",
+                [{"name": "Erro", "id": "erro"}],
+                [{"erro": "Não foi possível carregar os dados."}],
+                "0",
+                "Erro ao atualizar"
+            )
+        
+        stats = response.get('estatisticas', {})
+        dados = response.get('dados', [])
+        colunas = response.get('colunas', [])
+        total_registros = response.get('total_registros', 0)
+        timestamp = response.get('timestamp', datetime.now().isoformat())
+        
+        # Formatar timestamp
+        try:
+            dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            ultima_atualizacao = f"Atualizado às {dt.strftime('%H:%M:%S')}"
+        except:
+            ultima_atualizacao = "Atualizado agora"
+        
+        # Preparar colunas da tabela
+        columns = [{"name": col, "id": col} for col in colunas] if colunas else []
+        
+        # Formatar números com separador de milhares
+        total_sacas = f"{stats.get('total_sacas', 0):,}".replace(',', '.')
+        total_scuttle = f"{stats.get('total_scuttle', 0):,}".replace(',', '.')
+        total_palete = f"{stats.get('total_palete', 0):,}".replace(',', '.')
+        total_geral = f"{stats.get('total_geral', 0):,}".replace(',', '.')
+        
+        return (
+            total_sacas,
+            total_scuttle,
+            total_palete,
+            total_geral,
+            columns,
+            dados,
+            str(total_registros),
+            ultima_atualizacao
+        )
+        
+    except Exception as e:
+        print(f"Erro ao atualizar programado: {e}")
+        return (
+            "0", "0", "0", "0",
+            [{"name": "Erro", "id": "erro"}],
+            [{"erro": "Erro ao carregar dados"}],
+            "0",
+            "Erro ao atualizar"
+        )
 
 
 # ============================================================================

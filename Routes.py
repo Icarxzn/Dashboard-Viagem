@@ -72,58 +72,168 @@ def pagina_previsao():
     ])
 
 # ============================================================================
-# PÁGINA 2: PROGRAMADO - Viagens programadas com estatísticas
+# PÁGINA 2: PROGRAMADO - Viagens programadas com filtros e tabela
 # ============================================================================
 def pagina_programado():
     """
     Renderiza a página de Viagens Programadas
     
     Componentes:
+    - Filtros: Data Inicial, Data Final, Turno
     - Estatísticas: Total Programado, Próximas 24h, Próximos 7 dias
-    - Lista: Próximas viagens com LT, rota e horário
+    - Tabela: Dados detalhados com Status Veiculo e outras colunas
     
     Returns:
         html.Div: Componente Dash com a página de programado
     """
     return html.Div([
+        # Interval para atualizar dados a cada 20 segundos
+        dcc.Interval(id="interval-programado", interval=20000, n_intervals=0),
+        
+        # Filtros
         html.Div([
-            html.H3("📅 Viagens Programadas", style={'color': '#FF6B35', 'marginBottom': '20px'}),
             html.Div([
-                html.Div([
-                    html.H4("Total Programado", style={'color': '#FF6B35', 'marginBottom': '10px'}),
-                    html.Div("245", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#FF6B35'})
-                ], className="stat-item", style={'padding': '20px'}),
-                html.Div([
-                    html.H4("Próximas 24h", style={'color': '#FF6B35', 'marginBottom': '10px'}),
-                    html.Div("32", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#28a745'})
-                ], className="stat-item", style={'padding': '20px'}),
-                html.Div([
-                    html.H4("Próximos 7 dias", style={'color': '#FF6B35', 'marginBottom': '10px'}),
-                    html.Div("89", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#FF8C42'})
-                ], className="stat-item", style={'padding': '20px'}),
-            ], style={'display': 'grid', 'gridTemplateColumns': 'repeat(3, 1fr)', 'gap': '20px', 'marginBottom': '30px'}),
+                html.Label("Data"),
+                dcc.DatePickerSingle(
+                    id="filtro-prog-data",
+                    display_format="DD/MM/YYYY",
+                    placeholder="DD/MM/AAAA",
+                    style={'width': '100%'}
+                )
+            ], className="filter-item"),
             
             html.Div([
-                html.H4("Próximas Viagens", style={'color': '#FF6B35', 'marginBottom': '15px'}),
+                html.Label("Turno"),
+                dcc.Dropdown(
+                    id="filtro-prog-turno",
+                    options=[
+                        {"label": "Todos", "value": ""},
+                        {"label": "Manhã", "value": "Manhã"},
+                        {"label": "Tarde", "value": "Tarde"},
+                        {"label": "Noite", "value": "Noite"}
+                    ],
+                    placeholder="Selecione o turno",
+                    value=""
+                )
+            ], className="filter-item"),
+            
+            html.Div([
+                html.Label("Status"),
+                dcc.Dropdown(
+                    id="filtro-prog-status",
+                    options=[
+                        {"label": "Todos", "value": ""},
+                        {"label": "Espelhado", "value": "Espelhado"},
+                        {"label": "Não espelhado", "value": "Não espelhado"}
+                    ],
+                    placeholder="Selecione o status",
+                    value=""
+                )
+            ], className="filter-item"),
+            
+            html.Div([
+                html.Label("Limpar Filtros"),
+                html.Button(
+                    "🗑️ Limpar Tudo",
+                    id="btn-limpar-programado",
+                    style={
+                        'width': '100%',
+                        'height': '42px',
+                        'background': 'linear-gradient(135deg, #6c757d, #adb5bd)',
+                        'color': 'white',
+                        'border': 'none',
+                        'borderRadius': '8px',
+                        'cursor': 'pointer',
+                        'fontWeight': '600'
+                    }
+                )
+            ], className="filter-item"),
+        ], className="filters-container"),
+        
+        # Estatísticas
+        html.Div([
+            html.Div([
+                html.H3("📅 Viagens Programadas", style={'color': '#FF6B35', 'marginBottom': '20px'}),
                 html.Div([
                     html.Div([
-                        html.Div("LT-001", style={'fontWeight': 'bold', 'color': '#FF6B35', 'marginBottom': '5px'}),
-                        html.Div("São Paulo → Rio de Janeiro", style={'color': '#666', 'fontSize': '0.9rem', 'marginBottom': '5px'}),
-                        html.Div("Saída: 17/02/2026 08:00", style={'color': '#888', 'fontSize': '0.85rem'})
-                    ], style={'padding': '15px', 'background': '#FFF5F0', 'borderRadius': '8px', 'borderLeft': '4px solid #FF6B35', 'marginBottom': '10px'}),
+                        html.H4("Total de Sacas", style={'color': '#FF6B35', 'marginBottom': '10px', 'fontSize': '1rem'}),
+                        html.Div(id="stat-total-sacas", children="0", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#FF6B35'})
+                    ], className="stat-item", style={'padding': '20px'}),
                     html.Div([
-                        html.Div("LT-002", style={'fontWeight': 'bold', 'color': '#FF6B35', 'marginBottom': '5px'}),
-                        html.Div("Belo Horizonte → Brasília", style={'color': '#666', 'fontSize': '0.9rem', 'marginBottom': '5px'}),
-                        html.Div("Saída: 17/02/2026 10:30", style={'color': '#888', 'fontSize': '0.85rem'})
-                    ], style={'padding': '15px', 'background': '#FFF5F0', 'borderRadius': '8px', 'borderLeft': '4px solid #FF6B35', 'marginBottom': '10px'}),
+                        html.H4("Total de Scuttle", style={'color': '#FF6B35', 'marginBottom': '10px', 'fontSize': '1rem'}),
+                        html.Div(id="stat-total-scuttle", children="0", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#28a745'})
+                    ], className="stat-item", style={'padding': '20px'}),
                     html.Div([
-                        html.Div("LT-003", style={'fontWeight': 'bold', 'color': '#FF6B35', 'marginBottom': '5px'}),
-                        html.Div("Curitiba → Salvador", style={'color': '#666', 'fontSize': '0.9rem', 'marginBottom': '5px'}),
-                        html.Div("Saída: 17/02/2026 14:00", style={'color': '#888', 'fontSize': '0.85rem'})
-                    ], style={'padding': '15px', 'background': '#FFF5F0', 'borderRadius': '8px', 'borderLeft': '4px solid #FF6B35'})
-                ], style={'background': 'white', 'padding': '20px', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})
-            ], style={'marginTop': '20px'})
-        ], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})
+                        html.H4("Total de Palete", style={'color': '#FF6B35', 'marginBottom': '10px', 'fontSize': '1rem'}),
+                        html.Div(id="stat-total-palete", children="0", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#17a2b8'})
+                    ], className="stat-item", style={'padding': '20px'}),
+                    html.Div([
+                        html.H4("Total Geral", style={'color': '#FF6B35', 'marginBottom': '10px', 'fontSize': '1rem'}),
+                        html.Div(id="stat-total-geral", children="0", style={'fontSize': '2.5rem', 'fontWeight': 'bold', 'color': '#FF8C42'})
+                    ], className="stat-item", style={'padding': '20px'}),
+                ], style={'display': 'grid', 'gridTemplateColumns': 'repeat(4, 1fr)', 'gap': '20px', 'marginBottom': '20px'}),
+            ], style={'margin': '20px', 'padding': '20px', 'background': 'white', 'borderRadius': '12px', 'border': '1px solid #ffe8dd'})
+        ]),
+        
+        # Tabela de dados
+        html.Div([
+            html.Div([
+                html.H3("📋 Dados Programados"),
+                html.Div([
+                    html.Div([
+                        html.Span("Mostrando ", style={'color': '#666'}),
+                        html.Span(id="contador-registros-programado", style={'fontWeight': 'bold', 'color': '#FF6B35'}),
+                        html.Span(" registros", style={'color': '#666'})
+                    ], style={'fontSize': '0.9rem'}),
+                    html.Div(id="ultima-atualizacao-programado", style={'fontSize': '0.85rem', 'color': '#888', 'fontStyle': 'italic', 'marginLeft': '15px'})
+                ], style={'display': 'flex', 'alignItems': 'center', 'gap': '10px'})
+            ], className="table-header"),
+            
+            dash_table.DataTable(
+                id="tabela-programado",
+                page_size=20,
+                page_current=0,
+                sort_action="native",
+                style_table={"borderRadius": "6px", "overflow": "hidden", "minHeight": "400px"},
+                style_cell={
+                    "padding": "12px",
+                    "textAlign": "left",
+                    "fontFamily": "'Poppins', sans-serif",
+                    "fontSize": "13px",
+                    "whiteSpace": "normal",
+                    "height": "auto",
+                    "minWidth": "100px",
+                    "maxWidth": "200px",
+                    "overflow": "hidden",
+                    "textOverflow": "ellipsis"
+                },
+                style_header={
+                    "fontWeight": "700",
+                    "backgroundColor": "#FF6B35",
+                    "color": "white",
+                    "borderBottom": "2px solid #FF8C42",
+                    "fontSize": "14px",
+                    "padding": "15px",
+                    "textAlign": "left",
+                    "position": "sticky",
+                    "top": "0"
+                },
+                style_data={"border": "1px solid #ffe8dd"},
+                style_data_conditional=[
+                    {"if": {"row_index": "odd"}, "backgroundColor": "#FFF5F0"},
+                    {"if": {"state": "selected"}, "backgroundColor": "#FFE8DD !important", "border": "2px solid #FF6B35"},
+                    {"if": {"column_id": "Status_da_Viagem", "filter_query": "{Status_da_Viagem} = 'Parado'"}, "color": "#dc3545", "fontWeight": "bold"},
+                    {"if": {"column_id": "Status_da_Viagem", "filter_query": "{Status_da_Viagem} = 'Em trânsito'"}, "color": "#28a745", "fontWeight": "bold"},
+                    {"if": {"column_id": "Status Veiculo", "filter_query": "{Status Veiculo} = 'Parado'"}, "color": "#dc3545", "fontWeight": "bold"},
+                    {"if": {"column_id": "Status Veiculo", "filter_query": "{Status Veiculo} = 'Em movimento'"}, "color": "#28a745", "fontWeight": "bold"}
+                ],
+                style_cell_conditional=[
+                    {"if": {"column_id": "trip_number"}, "fontWeight": "600", "color": "#FF6B35"}
+                ],
+                tooltip_data=[],
+                tooltip_duration=None
+            )
+        ], className="table-container")
     ])
 
 # ============================================================================
