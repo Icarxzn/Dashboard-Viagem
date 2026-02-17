@@ -33,7 +33,7 @@ PLANILHA_ID = os.getenv("PLANILHA_ID", "1BKB3rsrZFcHxRt0LkTABtSBlqv7VWU6TwmkbwX9
 NOME_ABA = "Base Principal"
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
 CACHE_DURATION = 15  # Cache expira a cada 15 segundos
-COLUNAS_TABELA = ["trip_number", "Status_da_Viagem", "ETA Planejado", "Ultima localização", "Previsão de chegada", "Ocorrencia"]
+COLUNAS_TABELA = ["trip_number", "Status Veiculo", "Status_da_Viagem", "ETA Planejado", "Ultima localização", "Previsão de chegada", "Ocorrencia"] #--------
 CORES_STATUS = {
     "Parado": "#dc3545",
     "Em trânsito": "#28a745",
