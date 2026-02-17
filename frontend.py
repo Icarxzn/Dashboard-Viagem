@@ -128,34 +128,8 @@ def buscar_programado_filtrado(data=None, turno=None, status=None):
     except Exception as e:
         print(f"Erro ao buscar programado filtrado: {e}")
         return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total_sacas': 0, 'total_scuttle': 0, 'total_palete': 0, 'total_geral': 0}, 'total_registros': 0}
-    """
-    Busca dados de viagens programadas com filtros
-    
-    Args:
-        data_inicial (str): Data inicial (YYYY-MM-DD)
-        data_final (str): Data final (YYYY-MM-DD)
-        turno (str): Turno (Manhã, Tarde, Noite)
-    
-    Returns:
-        dict: Resposta JSON com dados, colunas e estatísticas (sacas, scuttle, total)
-    """
-    try:
-        params = {}
-        if data_inicial:
-            params['data_inicial'] = data_inicial
-        if data_final:
-            params['data_final'] = data_final
-        if turno:
-            params['turno'] = turno
-        
-        response = requests.get(f"{API_URL}/api/programado", params=params, timeout=30)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Erro ao buscar programado filtrado: {e}")
-        return {'success': False, 'dados': [], 'colunas': [], 'estatisticas': {'total_sacas': 0, 'total_scuttle': 0, 'total_palete': 0, 'total_geral': 0}, 'total_registros': 0}
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, suppress_callback_exceptions=True)
 app.title = "Dashboard de Monitoramento de Viagens"
 
 # ============================================================================
@@ -333,6 +307,7 @@ def renderizar_pagina(pagina):
     Output("filtro-id", "options"),
     Output("filtro-destino", "options"),
     Output("filtro-status", "options"),
+    Output("filtro-prog-turno", "options"),
     Output("api-status", "children"),
     Input("interval", "n_intervals")
 )
@@ -355,13 +330,16 @@ def atualizar_filtros(_):
                 status_text = "✅ Conectado ao servidor" if health_response.ok else "⚠️ Servidor lento"
             except:
                 status_text = "⚠️ Verificando conexão..."
-            
-            return opcoes.get('ids', []), opcoes.get('destinos', []), opcoes.get('status', []), status_text
+            # garantir opção 'Todos' no topo e preencher turno com valores normalizados (T1/T2/T3)
+            turno_opts = opcoes.get('turno', []) or []
+            # prefix Todos
+            turno_opts = [{"label": "Todos", "value": ""}] + turno_opts
+            return opcoes.get('ids', []), opcoes.get('destinos', []), opcoes.get('status', []), turno_opts, status_text
         else:
-            return [], [], [], "❌ Erro ao carregar filtros"
+            return [], [], [], [], "❌ Erro ao carregar filtros"
     except Exception as e:
         print(f"Erro ao atualizar filtros: {e}")
-        return [], [], [], "❌ Servidor offline"
+        return [], [], [], [], "❌ Servidor offline"
 
 # CALLBACK 4: Limpar todos os filtros
 @app.callback(
@@ -595,12 +573,14 @@ def atualizar_programado(data, turno, status, n_intervals):
         response = buscar_programado_filtrado(data, turno if turno else None, status if status else None)
         
         if not response.get('success'):
+            error_msg = response.get('error') if isinstance(response, dict) else None
+            display_msg = error_msg or "Não foi possível carregar os dados."
             return (
                 "0", "0", "0", "0",
                 [{"name": "Erro", "id": "erro"}],
-                [{"erro": "Não foi possível carregar os dados."}],
+                [{"erro": display_msg}],
                 "0",
-                "Erro ao atualizar"
+                display_msg
             )
         
         stats = response.get('estatisticas', {})

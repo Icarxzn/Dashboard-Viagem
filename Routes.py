@@ -106,12 +106,7 @@ def pagina_programado():
                 html.Label("Turno"),
                 dcc.Dropdown(
                     id="filtro-prog-turno",
-                    options=[
-                        {"label": "Todos", "value": ""},
-                        {"label": "Manhã", "value": "Manhã"},
-                        {"label": "Tarde", "value": "Tarde"},
-                        {"label": "Noite", "value": "Noite"}
-                    ],
+                    options=[],
                     placeholder="Selecione o turno",
                     value=""
                 )

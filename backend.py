@@ -44,6 +44,35 @@ logger = logging.getLogger(__name__)
 dados_cache = {"df": None, "timestamp": None}
 
 
+def _normalize_turno(val):
+    """Normaliza valores de turno para T1/T2/T3.
+
+    Regras simples: procura por '1'/'man' -> T1, '2'/'tar' -> T2, '3'/'noi' -> T3.
+    Mantém T1/T2/T3 se já estiverem nesse formato.
+    """
+    if val is None:
+        return None
+    s = str(val).strip().lower()
+    if s == 't1' or s == 't01' or s == '1' or 't 1' in s:
+        return 'T1'
+    if s == 't2' or s == 't02' or s == '2' or 't 2' in s:
+        return 'T2'
+    if s == 't3' or s == 't03' or s == '3' or 't 3' in s:
+        return 'T3'
+    if 'man' in s or 'manha' in s or 'manhã' in s:
+        return 'T1'
+    if 'tar' in s or 'tarde' in s:
+        return 'T2'
+    if 'noi' in s or 'noite' in s:
+        return 'T3'
+    # fallback: try to extract digit
+    import re
+    m = re.search(r"([123])", s)
+    if m:
+        return f'T{m.group(1)}'
+    return None
+
+
 class DataManager:
     """Gerenciador de dados do Google Sheets com cache"""
     
@@ -99,11 +128,15 @@ class DataManager:
             
             # Converter colunas de data
             for col in df.columns:
-                if 'data' in col.lower() or 'Data' in col:
+                if 'data' in col.lower() or 'data' in col:
                     try:
-                        df[col] = pd.to_datetime(df[col], format='%d/%m/%Y', errors='coerce')
-                    except:
-                        pass
+                        # tentar inferir o formato (aceita 'DD/MM/YYYY' e 'YYYY-MM-DD' etc.)
+                        df[col] = pd.to_datetime(df[col], dayfirst=True, errors='coerce')
+                    except Exception:
+                        try:
+                            df[col] = pd.to_datetime(df[col], errors='coerce')
+                        except Exception:
+                            pass
             
             dados_cache["df"] = df
             dados_cache["timestamp"] = time.time()
@@ -179,11 +212,26 @@ class DataManager:
                 valores = df[col].dropna().unique()
                 return [{"label": str(v), "value": v} for v in sorted(valores, key=lambda x: str(x))]
             return []
-        
+
+        # detectar coluna de turno (variações: 'Turno', 'turno_programado', etc.)
+        turno_col = None
+        for c in df.columns:
+            if 'turn' in c.lower():
+                turno_col = c
+                break
+
+        # Normalizar opções de turno para T1/T2/T3
+        turno_options = []
+        if turno_col and turno_col in df.columns:
+            raw_vals = df[turno_col].dropna().unique()
+            normalized = sorted({v for v in (_normalize_turno(v) for v in raw_vals) if v})
+            turno_options = [{"label": v, "value": v} for v in normalized]
+
         return {
             'ids': get_options("trip_number"),
             'destinos': get_options("destination_station_code"),
-            'status': get_options("Status_da_Viagem")
+            'status': get_options("Status_da_Viagem"),
+            'turno': turno_options
         }
 
 
@@ -326,26 +374,39 @@ def get_programado():
         else:
             df_programado = df.copy()
         
-        # Converter ETA Planejado para datetime
-        if "ETA Planejado" in df_programado.columns:
+        # Converter Data Planejada para datetime
+        if "Data Planejada" in df_programado.columns:
             try:
-                df_programado['ETA_dt'] = pd.to_datetime(df_programado["ETA Planejado"], 
-                                                         format='%d/%m/%Y %H:%M', errors='coerce')
+                # Use parsing without fixed format to accept both 'DD/MM/YYYY' and 'YYYY-MM-DD'
+                df_programado['Data_dt'] = pd.to_datetime(df_programado["Data Planejada"], dayfirst=True, errors='coerce')
             except Exception as e:
-                logger.warning(f"Erro ao processar datas: {e}")
+                logger.warning(f"Erro ao processar Data Planejada: {e}")
         
         # Aplicar filtros
-        if data and "ETA_dt" in df_programado.columns:
+        if data and "Data_dt" in df_programado.columns:
             try:
                 data_dt = pd.to_datetime(data)
                 data_final_dt = data_dt + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-                df_programado = df_programado[(df_programado['ETA_dt'] >= data_dt) & 
-                                             (df_programado['ETA_dt'] <= data_final_dt)]
+                df_programado = df_programado[(df_programado['Data_dt'] >= data_dt) & 
+                                             (df_programado['Data_dt'] <= data_final_dt)]
             except Exception as e:
                 logger.error(f"Erro ao aplicar filtro data: {e}")
         
-        if turno and turno != "" and "Turno" in df_programado.columns:
-            df_programado = df_programado[df_programado['Turno'].astype(str).str.strip().str.lower() == turno.lower()]
+        # Filtrar por turno — aceitar variações no nome da coluna (ex: 'Turno', 'turno_programado')
+        turno_col = None
+        for c in df_programado.columns:
+            if 'turn' in c.lower():
+                turno_col = c
+                break
+
+        # Criar coluna padronizada 'Turno_std' com valores T1/T2/T3
+        if turno_col and turno_col in df_programado.columns:
+            df_programado['Turno_std'] = df_programado[turno_col].apply(_normalize_turno)
+        else:
+            df_programado['Turno_std'] = df_programado.get('Turno').apply(_normalize_turno) if 'Turno' in df_programado.columns else None
+
+        if turno and turno != "" and 'Turno_std' in df_programado.columns:
+            df_programado = df_programado[df_programado['Turno_std'].astype(str).str.strip().str.lower() == turno.lower()]
         
         if status and status != "" and "Status" in df_programado.columns:
             df_programado = df_programado[df_programado['Status'].astype(str).str.strip().str.lower() == status.lower()]
@@ -373,22 +434,47 @@ def get_programado():
         total_geral = calcular_total('total')
         
         # Selecionar colunas para exibição
-        colunas_exibir = ["trip_number", "Status Veiculo", "Status_da_Viagem", "Turno", "ETA Planejado", 
-                         "origin_station_code", "destination_station_code", "Ultima localização", 
-                         "Previsão de chegada", "Ocorrencia", "Saca", "Scuttle", "Palete", "Total"]
+        # Ajustar colunas a exibir: usar o nome real de coluna de turno quando detectado
+        # Garantir que a coluna de exibição chamada 'Turno' exista (vinda do original ou do padrão)
+        if turno_col and turno_col in df_programado.columns:
+            df_programado['Turno'] = df_programado[turno_col]
+        elif 'Turno_std' in df_programado.columns:
+            df_programado['Turno'] = df_programado['Turno_std']
+
+        colunas_exibir = ["trip_number", "Data Planejada", "Turno", "Status Veiculo", 
+                         "ETA Planejado", "origin_station_code", "destination_station_code", 
+                         "Ultima localização", "Previsão de chegada", "Ocorrencia", 
+                         "Saca", "Scuttle", "Palete", "Total"]
         
         colunas_existentes = [c for c in colunas_exibir if c in df_programado.columns]
         df_resultado = df_programado[colunas_existentes] if colunas_existentes else df_programado
         
-        # Ordenar por ETA e remover colunas auxiliares
-        if "ETA_dt" in df_programado.columns:
-            df_resultado = df_resultado.sort_values('ETA_dt', na_position='last')
-            if 'ETA_dt' in df_resultado.columns:
-                df_resultado = df_resultado.drop(columns=['ETA_dt'])
+        # Ordenar por Data Planejada e remover colunas auxiliares (somente se estiver presente em df_resultado)
+        if 'Data_dt' in df_resultado.columns:
+            df_resultado = df_resultado.sort_values('Data_dt', na_position='last')
+            df_resultado = df_resultado.drop(columns=['Data_dt'])
         
+        # Converter registros para tipos JSON-serializáveis (tratando NaT/Timestamp)
+        records = df_resultado.to_dict('records')
+
+        def _convert_value(v):
+            try:
+                if pd.isna(v):
+                    return None
+            except Exception:
+                pass
+            if isinstance(v, (pd.Timestamp, datetime)):
+                try:
+                    return v.isoformat()
+                except Exception:
+                    return str(v)
+            return v
+
+        records = [ {k: _convert_value(v) for k, v in row.items()} for row in records ]
+
         return jsonify({
             'success': True,
-            'dados': df_resultado.to_dict('records'),
+            'dados': records,
             'colunas': list(df_resultado.columns),
             'estatisticas': {
                 'total_sacas': total_sacas,
